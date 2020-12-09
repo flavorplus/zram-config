@@ -161,6 +161,30 @@ removeZswap() {
 serviceConfiguration() {
 	if [[ $1 == "stop" ]]; then
 		echo "Stopping services that interfere with zram device configuration." >> "$ZLOG"
+		if dpkg -s 'grafana' &> /dev/null && [[ $(systemctl is-active grafana-server.service) == "active" ]]; then
+			export grafanaActive="true"
+			systemctl stop grafana-server.service >> "$ZLOG" 2>&1 || return 1
+		fi
+		if dpkg -s 'influxdb' &> /dev/null && [[ $(systemctl is-active influxdb.service) == "active" ]]; then
+			export influxdbActive="true"
+			systemctl stop influxdb.service >> "$ZLOG" 2>&1 || return 1
+		fi
+		if dpkg -s 'mosquitto' &> /dev/null && [[ $(systemctl is-active mosquitto.service) == "active" ]]; then
+			export mosquittoActive="true"
+			systemctl stop mosquitto.service >> "$ZLOG" 2>&1 || return 1
+		fi
+		if dpkg -s 'nginx' &> /dev/null && [[ $(systemctl is-active nginx.service) == "active" ]]; then
+			export nginxActive="true"
+			systemctl stop nginx.service >> "$ZLOG" 2>&1 || return 1
+		fi
+		if dpkg -s 'samba' &> /dev/null && [[ $(systemctl is-active smbd.service) == "active" ]]; then
+			export sambaActive="true"
+			systemctl stop smbd.service nmbd.service >> "$ZLOG" 2>&1 || return 1
+		fi
+		if dpkg -s 'openhab' &> /dev/null && [[ $(systemctl is-active openhab.service) == "active" ]]; then
+			export openhabActive="true"
+			systemctl stop openhab.service >> "$ZLOG" 2>&1 || return 1
+		fi
 		if [[ $(systemctl is-active rsyslog.service) == "active" ]]; then
 			export rsyslogActive="true"
 			systemctl stop syslog.socket >> "$ZLOG" 2>&1 || return 1
@@ -177,6 +201,24 @@ serviceConfiguration() {
 		fi
 		if [[ -n $rsyslogActive ]]; then
 			systemctl restart syslog.socket >> "$ZLOG" 2>&1 || return 1
+		fi
+		if [[ -n $openhabActive ]]; then
+			systemctl restart openhab.service >> "$ZLOG" 2>&1 || return 1
+		fi
+		if [[ -n $sambaActive ]]; then
+			systemctl restart smbd.service nmbd.service >> "$ZLOG" 2>&1 || return 1
+		fi
+		if [[ -n $nginxActive ]]; then
+			systemctl restart nginx.service >> "$ZLOG" 2>&1 || return 1
+		fi
+		if [[ -n $mosquittoActive ]]; then
+			systemctl restart mosquitto.service >> "$ZLOG" 2>&1 || return 1
+		fi
+		if [[ -n $influxdbActive ]]; then
+			systemctl restart influxdb.service >> "$ZLOG" 2>&1 || return 1
+		fi
+		if [[ -n $grafanaActive ]]; then
+			systemctl restart grafana-server.service >> "$ZLOG" 2>&1 || return 1
 		fi
 	fi
 }
