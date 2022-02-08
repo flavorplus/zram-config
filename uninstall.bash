@@ -6,18 +6,25 @@ if [[ "$(id -u)" -ne 0 ]]; then
   echo "ERROR: You need to be ROOT (sudo can be used)."
   exit 1
 fi
-if ! [[ -f /usr/local/sbin/zram-config ]]; then
+if ! [[ -f /usr/local/sbin/zram-config || -f /usr/sbin/zram-config ]]; then
   echo "ERROR: zram-config is not installed."
   exit 1
 fi
 
 zram-config "stop"
 tar -cf "${BASEDIR}/logs.tar" --directory=/usr/local/share/zram-config log
-systemctl disable zram-config.service zram-config-shutdown.service
-rm -f /etc/systemd/system/zram-config.service /etc/systemd/system/zram-config-shutdown.service
-sed -i '\|^ReadWritePaths=/usr/local/share/zram-config/log$|d' /lib/systemd/system/logrotate.service
-systemctl daemon-reload
-rm -f /usr/local/sbin/zram-config
+if [[ "$(grep -o '^ID=.*$' /etc/os-release | cut -d'=' -f2)" == "alpine" ]]; then
+  rc-service zram-config stop
+  rc-update del zram-config boot
+  rm -f /etc/init.d/zram-config
+  rm -f /usr/sbin/zram-config
+else 
+  systemctl disable zram-config.service zram-config-shutdown.service
+  rm -f /etc/systemd/system/zram-config.service /etc/systemd/system/zram-config-shutdown.service
+  sed -i '\|^ReadWritePaths=/usr/local/share/zram-config/log$|d' /lib/systemd/system/logrotate.service
+  systemctl daemon-reload
+  rm -f /usr/local/sbin/zram-config
+fi
 rm -f /etc/logrotate.d/zram-config
 rm -f /etc/ztab
 rm -rf /usr/local/lib/zram-config

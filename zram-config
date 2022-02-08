@@ -161,11 +161,14 @@ removeZswap() {
 serviceConfiguration() {
 	if [[ $1 == "stop" ]]; then
 		echo "Stopping services that interfere with zram device configuration." >> "$ZLOG"
-		if [[ $(systemctl is-active rsyslog.service) == "active" ]]; then
+		if ! [[ "$(grep -o '^ID=.*$' /etc/os-release | cut -d'=' -f2)" == "alpine" ]] && [[ $(systemctl is-active rsyslog.service) == "active" ]]; then
 			export rsyslogActive="true"
 			systemctl stop syslog.socket >> "$ZLOG" 2>&1 || return 1
+		elif [[ "$(rc-service syslog status | sed -ne 's/^ \* status: \(.*\)/\1/p')" == "started" ]]; then
+			export syslogActiveAlpine="true"
+			rc-service syslog stop >> "$ZLOG" 2>&1 || return 1
 		fi
-		if [[ $(systemctl is-active systemd-journald.service) == "active" ]]; then
+		if ! [[ "$(grep -o '^ID=.*$' /etc/os-release | cut -d'=' -f2)" == "alpine" ]] && [[ $(systemctl is-active systemd-journald.service) == "active" ]]; then
 			export journaldActive="true"
 			journalctl --flush >> "$ZLOG" 2>&1 || return 1
 			systemctl stop systemd-journald.socket systemd-journald-audit.socket systemd-journald-dev-log.socket >> "$ZLOG" 2>&1 || return 1
@@ -177,6 +180,9 @@ serviceConfiguration() {
 		fi
 		if [[ -n $rsyslogActive ]]; then
 			systemctl restart syslog.socket >> "$ZLOG" 2>&1 || return 1
+		fi
+		if [[ -n $syslogActiveAlpine ]]; then
+			rc-service syslog start >> "$ZLOG" 2>&1 || return 1
 		fi
 	fi
 }
@@ -199,6 +205,7 @@ case "$1" in
 					# Skip comment line
 					continue
 					;;
+
 
 				"")
 					# Skip empty line
@@ -253,6 +260,11 @@ case "$1" in
 
 	stop)
 		echo "zram-config stop $(date +%Y-%m-%d-%H:%M:%S)" | tee -a "$ZLOG"
+		if ! [[ -f "$TMPDIR"/zram-device-list ]]; then
+			echo "zram-config allready stoped, exiting..." | tee -a "$ZLOG"
+			exit 0
+			;;
+		fi
 		tac "$TMPDIR"/zram-device-list > "$TMPDIR"/zram-device-list.rev
 		while read -r line; do
 			case "$line" in
@@ -289,7 +301,6 @@ case "$1" in
 		done < "$TMPDIR"/zram-device-list.rev
 		rm -fv "$TMPDIR"/zram-device-list.rev "$TMPDIR"/zram-device-list >> "$ZLOG"
 		;;
-
 	*)
 		echo "Usage: zram-config {start|stop}"
 		exit 0

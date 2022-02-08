@@ -1,11 +1,15 @@
 CFLAGS = -Wall -std=c99
 LFLAGS = -lm
+LIBS = -lfts
 CC = gcc
 
 all: overlay
 
 overlay: main.o logic.o sh.o
 	$(CC) $(LFLAGS) main.o logic.o sh.o -o overlay
+
+external: main.o logic.o sh.o
+	$(CC) $(LFLAGS) main.o logic.o sh.o -o overlay $(LIBS)
 
 main.o: main.c logic.h
 	$(CC) $(CFLAGS) -c main.c
