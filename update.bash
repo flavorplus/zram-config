@@ -49,7 +49,6 @@ if [[ "$(grep -o '^ID=.*$' /etc/os-release | cut -d'=' -f2)" == "alpine" ]]; the
 else 
   install -m 755 "${BASEDIR}/zram-config" /usr/local/sbin/
   install -m 644 "${BASEDIR}/zram-config.service" /etc/systemd/system/zram-config.service
-  install -m 644 "${BASEDIR}/zram-config-shutdown.service" /etc/systemd/system/zram-config-shutdown.service
   if ! grep -qs "ReadWritePaths=/usr/local/share/zram-config/log" /lib/systemd/system/logrotate.service; then
     echo "ReadWritePaths=/usr/local/share/zram-config/log" >> /lib/systemd/system/logrotate.service
   fi
@@ -79,7 +78,7 @@ if [[ "$(grep -o '^ID=.*$' /etc/os-release | cut -d'=' -f2)" == "alpine" ]]; the
 else 
   echo "Starting zram-config.service"
   systemctl daemon-reload
-  systemctl enable --now zram-config.service zram-config-shutdown.service
+  systemctl enable --now zram-config.service
 fi
 
 echo "#####        zram-config has been updated         #####"
