@@ -8,7 +8,7 @@ if [[ "$(id -u)" -ne 0 ]]; then
 fi
 if [[ $1 == "sync" ]]; then
   if [[ "$(grep -o '^ID=.*$' /etc/os-release | cut -d'=' -f2)" == "alpine" ]]; then
-    install -m 755 "$BASEDIR"/zsync.service /etc/periodic/daily/zsync
+    install -m 755 "$BASEDIR"/zsync.cron /etc/periodic/daily/zsync
   else 
     install -m 644 "$BASEDIR"/zsync.timer /etc/systemd/system/
     install -m 644 "$BASEDIR"/zsync.service /etc/systemd/system/
@@ -18,7 +18,7 @@ if [[ $1 == "sync" ]]; then
   echo "#####     zsync service is now installed     #####"
   exit 0
 fi
-if [[ "$(systemctl is-active zram-config.service 2> /dev/null)" == "active" ]] || [[ "$(rc-service syslog status 2> /dev/null | sed -ne 's/^ \* status: \(.*\)/\1/p')" == "started" ]]; then
+if [[ "$(systemctl is-active zram-config.service 2> /dev/null)" == "active" ]] || [[ "$(rc-service zram-config status 2> /dev/null | sed -ne 's/^ \* status: \(.*\)/\1/p')" == "started" ]]; then
   echo -e "ERROR: zram-config service is still running.\\nPlease run \"sudo ${BASEDIR}/update.bash\" to update zram-config instead."
   exit 1
 fi
