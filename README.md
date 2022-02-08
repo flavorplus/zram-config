@@ -32,6 +32,8 @@ See [raspberrypi/linux@cef3970381](https://github.com/raspberrypi/linux/commit/c
 ### Table of Contents
 
 1.  [Install](#install)
+    -   [Manually start or stop](#manually-start-or-stop)
+    -   [Sync files to disk](#sync-files-to-disk)
 2.  [Update](#update)
 3.  [Uninstall](#uninstall)
 4.  [Configure](#customize)
@@ -53,17 +55,23 @@ git clone https://github.com/ecdye/zram-config
 sudo ./zram-config/install.bash
 ```
 
-Note: The recommended way to stop the `zram-config.service` is to run
-``` shell
-sudo zram-config "stop"
-```
-**NOT**
-``` shell
-sudo systemctl stop zram-config.service
-```
-because of issues with the way systemd works with zram logging.
+#### Manually start or stop
 
-The service will stop normally on reboot, there is no need to manually stop it.
+Use `sudo systemctl {start|stop} zram-config.service` to start or stop zram-config.
+This will ensure that any changes are properly synced to the persistent storage before system poweroff.
+
+#### Sync files to disk
+
+Run `sudo zram-config sync` to sync any changes in the zram filesystems managed by zram-config to persistent storage.
+If you have concerns about losing data due to sudden power loss you could use this to ensure that changes are synced to disk periodically.
+
+A default sync service that will sync files to disk every night can be installed by running the following.
+
+``` shell
+sudo /path/to/zram-config/install.bash sync
+```
+
+Note that this sync service is not installed by default, you must install it separately.
 
 ### Update
 
@@ -108,7 +116,7 @@ Usually in `/opt` or `/var`, name optional.
 Usually in `/opt` or `/var`, name optional.
 
 If you need multiple zram swaps or zram directories, just create another entry in `/etc/ztab`.
-To do this simply add the new entries to the `/etc/ztab`, if you need to edit an active zram device you must stop zram with `sudo zram-config "stop"` and then edit any entries you need to.
+To do this simply add the new entries to the `/etc/ztab`, if you need to edit an active zram device you must stop zram with `sudo systemctl stop zram-config.service` and then edit any entries you need to.
 Once finished, start zram using `sudo systemctl start zram-config.service` which will only add the new entries if zram is already running.
 
 #### Example configuration
@@ -219,16 +227,16 @@ It is only under intense loads that the slight overhead of zram compression beco
 
 This chart from [facebook/zstd](https://github.com/facebook/zstd) provides a good benchmark for the performance of the different compressors.
 
-| Compressor name  | Ratio | Compression | Decompress. |
-|:-----------------|:------|:------------|:------------|
-| zstd 1.4.5 -1    | 2.884 | 500 MB/s    | 1660 MB/s   |
-| zlib 1.2.11 -1   | 2.743 | 90 MB/s     | 400 MB/s    |
-| brotli 1.0.7 -0  | 2.703 | 400 MB/s    | 450 MB/s    |
-| quicklz 1.5.0 -1 | 2.238 | 560 MB/s    | 710 MB/s    |
-| lzo1x 2.10 -1    | 2.106 | 690 MB/s    | 820 MB/s    |
-| lz4 1.9.2        | 2.101 | 740 MB/s    | 4530 MB/s   |
-| lzf 3.6 -1       | 2.077 | 410 MB/s    | 860 MB/s    |
-| snappy 1.1.8     | 2.073 | 560 MB/s    | 1790 MB/s   |
+| Compressor name  | Ratio | Compression| Decompress.|
+|:-----------------|------:|-----------:|-----------:|
+| zstd 1.5.1 -1    | 2.887 |   530 MB/s |  1700 MB/s |
+| zlib 1.2.11 -1   | 2.743 |    95 MB/s |   400 MB/s |
+| brotli 1.0.9 -0  | 2.702 |   395 MB/s |   450 MB/s |
+| quicklz 1.5.0 -1 | 2.238 |   540 MB/s |   760 MB/s |
+| lzo1x 2.10 -1    | 2.106 |   660 MB/s |   845 MB/s |
+| lz4 1.9.3        | 2.101 |   740 MB/s |  4500 MB/s |
+| lzf 3.6 -1       | 2.077 |   410 MB/s |   830 MB/s |
+| snappy 1.1.9     | 2.073 |   550 MB/s |  1750 MB/s |
 
 With swap, zram changes what is normally a static assumption that a HD is providing the swap using `swapiness` and `page-cache` where default `swapiness` is 60 and page-cache is 3.
 Depending on the average load zram will benefit from a setting of 80-100 for `swapiness` and changing `page-cache` to 0 so that singular pages are written which will greatly reduce latency.

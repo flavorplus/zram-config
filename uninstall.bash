@@ -19,8 +19,12 @@ if [[ "$(grep -o '^ID=.*$' /etc/os-release | cut -d'=' -f2)" == "alpine" ]]; the
   rm -f /etc/init.d/zram-config
   rm -f /usr/sbin/zram-config
 else 
-  systemctl disable zram-config.service zram-config-shutdown.service
-  rm -f /etc/systemd/system/zram-config.service /etc/systemd/system/zram-config-shutdown.service
+  systemctl disable zram-config.service
+  rm -f /etc/systemd/system/zram-config.service
+  if [[ -f /etc/systemd/system/zsync.timer ]]; then
+    systemctl disable zsync.timer
+    rm -f /etc/systemd/system/zsync.*
+  fi
   sed -i '\|^ReadWritePaths=/usr/local/share/zram-config/log$|d' /lib/systemd/system/logrotate.service
   systemctl daemon-reload
   rm -f /usr/local/sbin/zram-config

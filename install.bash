@@ -6,7 +6,18 @@ if [[ "$(id -u)" -ne 0 ]]; then
   echo "ERROR: You need to be ROOT (sudo can be used)."
   exit 1
 fi
-if [[ "$(systemctl is-active zram-config.service &> /dev/null)" == "active" || "$(rc-service syslog status 2> /dev/null | sed -ne 's/^ \* status: \(.*\)/\1/p')" == "started" ]]; then
+if [[ $1 == "sync" ]]; then
+  if [[ "$(grep -o '^ID=.*$' /etc/os-release | cut -d'=' -f2)" == "alpine" ]]; then
+    XXX
+  else 
+    install -m 644 "$BASEDIR"/zsync.* /etc/systemd/system/
+    systemctl daemon-reload
+    systemctl enable --now zsync.timer
+  fi
+  echo "#####     zsync service is now installed     #####"
+  exit 0
+fi
+if [[ "$(systemctl is-active zram-config.service 2> /dev/null)" == "active" ]] || [[ "$(rc-service syslog status 2> /dev/null | sed -ne 's/^ \* status: \(.*\)/\1/p')" == "started" ]]; then
   echo -e "ERROR: zram-config service is still running.\\nPlease run \"sudo ${BASEDIR}/update.bash\" to update zram-config instead."
   exit 1
 fi
@@ -44,7 +55,6 @@ if [[ "$(grep -o '^ID=.*$' /etc/os-release | cut -d'=' -f2)" == "alpine" ]]; the
 else 
   install -m 755 "${BASEDIR}/zram-config" /usr/local/sbin/
   install -m 644 "${BASEDIR}/zram-config.service" /etc/systemd/system/zram-config.service
-  install -m 644 "${BASEDIR}/zram-config-shutdown.service" /etc/systemd/system/zram-config-shutdown.service
   echo "ReadWritePaths=/usr/local/share/zram-config/log" >> /lib/systemd/system/logrotate.service
 fi
 install -m 644 "${BASEDIR}/ztab" /etc/ztab
@@ -62,8 +72,8 @@ if [[ "$(grep -o '^ID=.*$' /etc/os-release | cut -d'=' -f2)" == "alpine" ]]; the
 else 
   echo "Starting zram-config.service"
   systemctl daemon-reload
-  systemctl enable --now zram-config.service zram-config-shutdown.service
-  until [[ $(systemctl show -p SubState --value zram-config) == "dead" ]]; do
+  systemctl enable --now zram-config.service
+  until [[ $(systemctl show -p SubState --value zram-config) == "exited" ]]; do
     sleep 5
   done
 fi
