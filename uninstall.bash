@@ -16,6 +16,9 @@ tar -cf "${BASEDIR}/logs.tar" --directory=/usr/local/share/zram-config log
 if [[ "$(grep -o '^ID=.*$' /etc/os-release | cut -d'=' -f2)" == "alpine" ]]; then
   rc-service zram-config stop
   rc-update del zram-config boot
+  if [[ -f /etc/periodic/daily/zsync ]]; then
+    rm -f /etc/periodic/daily/zsync
+  fi
   rm -f /etc/init.d/zram-config
   rm -f /usr/sbin/zram-config
 else 

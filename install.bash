@@ -8,9 +8,10 @@ if [[ "$(id -u)" -ne 0 ]]; then
 fi
 if [[ $1 == "sync" ]]; then
   if [[ "$(grep -o '^ID=.*$' /etc/os-release | cut -d'=' -f2)" == "alpine" ]]; then
-    XXX
+    install -m 755 "$BASEDIR"/zsync.service /etc/periodic/daily/zsync
   else 
-    install -m 644 "$BASEDIR"/zsync.* /etc/systemd/system/
+    install -m 644 "$BASEDIR"/zsync.timer /etc/systemd/system/
+    install -m 644 "$BASEDIR"/zsync.service /etc/systemd/system/
     systemctl daemon-reload
     systemctl enable --now zsync.timer
   fi
